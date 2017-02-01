@@ -4,6 +4,7 @@
 var myTimer;
 var mySnake;
 var myApple;
+var IdCounter = 0;
 
 /**
  * Konstanten
@@ -14,6 +15,37 @@ const yAchse = 1;
 function getPositionOfElement(element) {
 	position = element.getAttribute("data-position").split(",");
 	return position;
+}
+
+function gridElement(position, className) {
+	/* position */
+	this.position = position;
+	this.setPosition = function(ps) {this.position = ps;}
+	this.getPosition = function() {return this.position;}
+	/* gridClassName */
+	this.className;
+	this.setClassName = function(cn) {this.className = cn;}
+	this.getClassName = function() {return this.className;}
+	/* gridId */
+	this.Id = 0;
+	this.setId = function(id) {this.Id = id;}
+	this.getId = function() {return this.Id;}
+	/* create */
+	this.create = function(ps,cn) {
+		this.setPosition(ps);
+		this.setClassName(cn);
+
+		$(".map")
+			.append("<div></div>")
+			.attr("id",IdCounter);
+
+		$(["id = " + IdCounter++])
+			.addClass("grid")
+			.addClass(this.gridClassName)
+			.attr("data-position", this.position.join())
+			.css("left"	, this.position[xAchse] * 10)
+			.css("top"	, this.position[yAchse] * 10);
+	}
 }
 
 function apple() {
