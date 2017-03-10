@@ -210,10 +210,9 @@ class Game {
 		$('<div></div>',{id:'game'}).appendTo('body');
 		$('<div></div>',{id:'map'}).appendTo('#game');
 		this.mapObjects = [];
-		this.snakes = [
-			new Snake('snake-1',[20,30]),
-			new Snake('snake-2',[40,30])
-		];
+		this.snakes = [];
+		this.snakes.push(new Snake('snake-1',[20,30]));
+		// this.snakes.push(new Snake('snake-2',[40,30]));
 		this.generateMapObjects();
 	}
 
