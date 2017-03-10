@@ -1,94 +1,90 @@
 class GridElement {
 
-	set position(val) {}
+	set id(val) {}
+	get id() {return this._id}
+
+	set position(val) {
+		this._position = val;
+		let positionString = val.join(",");
+		$("#"+this.id)
+			.attr("data-position", positionString)
+			.css({left:val[0] * 10, top:val[1] * 10});
+	}
 	get position() {return this._position}
 
-	set className(val) {}
+	set className(val) {
+		this._className = val;
+		$("#"+this.id).attr("class", val);
+	}
 	get className() {return this._className}
 
 	constructor(position, className) {
-		this._position = position,
-		this._className = className,
+		$("<div></div>", { id: idCounter }).appendTo("#map");
 
-		this.viewAssign();
-	}
-
-	viewAssign() {
-		var left = this.position[0], top = this.position[1];
-
-		$("<div></div>", {
-			class: "grid " + this.className,
-			"data-position": left + "," + top
-		})
-		.css({ left: left * 10, top: top * 10})
-		.appendTo(".map");
+		this._id = idCounter++;
+		this.position = position;
+		this.className = className;
 	}
 
 }
 
+class MapObject extends GridElement {
+	relocate() {
+		let position = {x:-10, y:-10};
+		while($("[data-position = '" + position.x + "," + position.y + "']").length) {
+			position.x = Math.floor( Math.random() * 60 );
+			position.y = Math.floor( Math.random() * 60 );
+		}
+		this.position = [position.x, position.y];
+	}
+
+	constructor(className) {
+		super([-10,-10], className);
+		this.relocate();
+	}
+}
+
+class Apple   extends MapObject { constructor() { super("apple")   } }
+class Grape   extends MapObject { constructor() { super("grape")   } }
+class Cherry  extends MapObject { constructor() { super("cherry")  } }
+class Barrier extends MapObject { constructor() { super("barrier") } }
+
 class SnakePart extends GridElement {
-
-	set countdown(val) {}
-	get countdown() {return this._countdown;}
-
-	constructor(position, className, id, countdown) {
-		super(position, className, id);
-		this._countdown = countdown;
+	constructor(position, name) {
+		super(position, "head");
+		$("#"+this.id).attr('data-name',name);
 	}
-
-	removeElement() {
-		$("[data-position = '" + this.position.join(",") + "']").remove();
-		this.position = null;
-		this.className = null;
-
-	}
-
-	reduceCd() {if(--this.countdown === 0) this.viewDeassign();}
-
+	removeElement() { $("#"+this.id).remove(); }
 }
 
 class Snake {
 
-	set positionHead(val) {}
-	get positionHead() { return this._positionHead }
+	set name(val) {this._name = val}
+	get name() { return this._name }
 
-	set parts(val) {}
-	get parts() { return this._parts }
+	set queue(val) {this._queue = val}
+	get queue() { return this._queue }
 
-	set direction(val) {}
+	set direction(val) {this._direction = val}
 	get direction() { return this._direction }
 
-	constructor(position = [40,30]) {
-		var head = {
-			position: position,
-			className: "head",
-			countdown: 1
-		};
+	set grow(val) { this._grow = val = val }
+	get grow() { return this._grow }
 
-		this._parts = [new SnakePart(
-			head["position"],
-			head["className"],
-			head["id"],
-			head["countdown"]
-		)];
-		this._head = this.parts[this.parts.length - 1];
-		this._direction = "right";
-	}
-
-	turn(direction) {
+	turn() {
 		if(
-			(this.direction === "up"	&& direction !== "down"	) ||
-			(this.direction === "down"	&& direction !== "up"	) ||
-			(this.direction === "left"	&& direction !== "right") ||
-			(this.direction === "right"	&& direction !== "left"	)
-		) {
-			this.direction = direction;
-		}
+			(this.direction.present === "up"	&& this.direction.new !== "down" ) ||
+			(this.direction.present === "down"	&& this.direction.new !== "up"	 ) ||
+			(this.direction.present === "left"	&& this.direction.new !== "right") ||
+			(this.direction.present === "right"	&& this.direction.new !== "left" ) ||
+			(this.direction.present === undefined)
+		)
+			this.direction.present = this.direction.new;
 	}
 
 	getNewPosition() {
-		let newPosition = this.head.position;
-		switch(this.direction) {
+		let newPosition = this.queue[0].position;
+		switch(this.direction.present) {
 			case "up"   : newPosition[1]--; break;
 			case "down" : newPosition[1]++; break;
 			case "left" : newPosition[0]--; break;
@@ -98,103 +94,37 @@ class Snake {
 	}
 
 	getClassOfPosition(pos) {
-		var ret = false,
-			jqueryObject = $.extend({},$("[data-position = '" + pos.join(",") + "']"));
-		if (jqueryObject.length)
-			ret = jqueryObject.attr("class").split(" ")[1];
+		let ret,
+			obj = $("[data-position = '" + pos.join(",") + "']");
+
+		obj.length ? ret = obj.attr("class") : ret = false;
 		return ret;
 	}
 
-	move(direction) {
-		var newPosition,
-			classNewOfPosition,
-			ret=true;
-
-		this.turn(direction);
-
-		newPosition = getNewPosition();
-		classOfNewPosition = this.getClassOfPosition(newPosition);
-
-		switch(classOfNewPosition) {
-			case false:
-				break;
-			case "apple":
-				addPart();
-				// Increase size
-				break;
-			case "barrier":
-			case "head":
-			case "body":
-				ret = false;
-				break;
-		}
-
+	addPart(newPosition) {
+		$(".head").attr("class", "body");
+		this.queue.enqueue( new SnakePart(newPosition, this.name) );
 	}
 
-	addPart(newPosition, id, increase) {
-		var head = {
-			position: newPosition,
-			className: "head"
-		};
-
-		if (inc) {
-
-		} else {
-
-		}
+	removePart() {
+		var grow = this.grow;
+		this.grow === 0 ?
+			this.queue.dequeue().removeElement() :
+			this.decreaseGrowth();
 	}
 
+	decreaseGrowth() {this.grow--}
 
-}
+	constructor(name, position = [20,30]) {
+		this.name = name;
+		this.grow = 1;
+		this.queue = new Queue();
+		this.direction = {present: undefined, new: 'right'};
 
-class Apple extends GridElement {
-
-	constructor(position, id) {
-		super(position, "apple", id);
+		this.addPart(position);
 	}
 
 }
-
-class Barrier extends GridElement {
-
-	constructor(position, id) {
-		super(position, "barrier", id);
-	}
-
-}
-
-// class Queue {
-//
-// 	set queue(val) {}
-// 	get queue() { return this._parts }
-//
-// 	set offset(val) {}
-// 	get offset() { return this._direction }
-//
-// 	constructor() {
-// 		this._queue  = [];
-// 		this._offset = 0;
-// 	}
-//
-// 	getLength(){return (this.queue.length - this.offset);}
-//
-// 	isEmpty(){return (this.queue.length == 0);}
-//
-// 	peek(){return (queue.length > 0 ? this.queue[this.offset] : undefined);}
-//
-// 	enqueue(item){this.queue.push(item);}
-//
-// 	dequeue(){
-// 		if (this.queue.length == 0) return undefined;
-// 		var item = this.queue[this.offset];
-// 		if (++ this.offset * 2 >= this.queue.length){
-// 			this.queue  = this.queue.slice(this.offset);
-// 			this.offset = 0;
-// 		}
-// 		return item;
-// 	}
-//
-// }
 
 class Queue extends Array {
 	get isEmpty(){return (this.length==0)}
@@ -203,21 +133,138 @@ class Queue extends Array {
 }
 
 class Game {
+	set pause(val){ this._pause = val }
+	get pause(){return this._pause}
+
+	set snakes(val){ this._snakes = val }
+	get snakes(){return this._snakes}
+
+	set mapObjects(val){ this._mapObjects = val }
+	get mapObjects(){return this._mapObjects}
+
+	play(file) { $("audio#"+file)[0].play(); }
+
+	loadAudio() {
+		$.each(["eat","move"],function(i, val) {
+			let file = 'audio/' + val + '.mp3';
+			$('<audio/>', {id: val, src: file}).appendTo('#game');
+		});
+	}
+
+	update() {
+
+		var ret = {};
+
+		for (let curSnake in this.snakes) {
+
+			this.snakes[curSnake].turn();
+
+			let newPosition = this.snakes[curSnake].getNewPosition(),
+				classOfNewPosition = this.snakes[curSnake].getClassOfPosition(newPosition);
+
+			ret[curSnake] = "nothing";
+
+			if(
+				newPosition[0] <  0 ||
+				newPosition[1] <  0 ||
+				newPosition[0] > 59 ||
+				newPosition[1] > 59
+			) {
+				ret = "over";
+			}
+
+			switch(classOfNewPosition) {
+
+					case "cherry":
+						this.snakes[curSnake].grow++;
+					case "grape":
+						this.snakes[curSnake].grow++;
+					case "apple":
+						this.snakes[curSnake].grow++;
+						ret = classOfNewPosition;
+						for(var cnt=0; cnt < this.mapObjects.length; cnt++) {
+							let pos1 = this.mapObjects[cnt].position,
+								pos2 = newPosition;
+							if (JSON.stringify(pos1) === JSON.stringify(pos2)) {
+								this.mapObjects[cnt].relocate();
+								break;
+							}
+						}
+					case false:
+						this.snakes[curSnake].addPart(newPosition);
+						this.snakes[curSnake].removePart();
+						break;
+					case "barrier":
+					case "head":
+					case "body":
+						ret = "over";
+						break;
+			}
+		}
+
+		console.log(ret);
+		return ret;
+	}
+
+	generateMap() {
+		$('<div></div>',{id:'game'}).appendTo('body');
+		$('<div></div>',{id:'map'}).appendTo('#game');
+		this.mapObjects = [];
+		this.snakes = [
+			new Snake('snake-1',[20,30]),
+			new Snake('snake-2',[40,30])
+		];
+		this.generateMapObjects();
+	}
+
+	generateMapObjects() {
+		let cnt = {
+			apple: Math.round(Math.random() * 3) + 1,
+			grape: Math.round(Math.random() * 2) + 1,
+			cherry: Math.round(Math.random() * 1) + 1,
+			barrier: Math.round(Math.random() * 5) + 8
+		}
+
+		for(var iapple = 0;   iapple   < cnt.apple;   iapple++)   this.mapObjects.push(new Apple());
+		for(var igrape = 0;   igrape   < cnt.grape;   igrape++)   this.mapObjects.push(new Grape());
+		for(var icherry = 0;  icherry  < cnt.cherry;  icherry++)  this.mapObjects.push(new Cherry());
+		for(var ibarrier = 0; ibarrier < cnt.barrier; ibarrier++) this.mapObjects.push(new Barrier());
+	}
+
+	gameOver() { $("#map").addClass("failed").children().remove() }
 
 	constructor() {
-		this.queue = new Queue();
-		this.queue.enqueue(new SnakePart([30,30],"head"));
-		console.log();
-		// this.snakes = [];
-		//
-		// this.audio = [];
-		// this.audio["eat"] = document.createElement('audio');
-		// this.audio["move"] = document.createElement('audio');
-		//
-		// this.audio["eat"].setAttribute('src', 'audio/eat.mp3');
-		// this.audio["move"].setAttribute('src', 'audio/move.mp3');
-		//
-		// this.timer = setInterval(function() {});
+		this.pause = true;
+		this.generateMap();
+		this.generateMapObjects();
+		this.loadAudio();
+
+		document.addEventListener("keyup", (event) => {
+			const keyName = event.key;
+
+			this.direction = function(a,b) {this.snakes[a].direction.new = b};
+
+			switch (keyName) {
+				case "ArrowLeft":  this.direction(0, "left");  break;
+				case "ArrowUp":    this.direction(0, "up");    break;
+				case "ArrowRight": this.direction(0, "right"); break;
+				case "ArrowDown":  this.direction(0, "down");  break;
+			}
+
+			switch (keyName) {
+				case "w": this.direction(1, "up");    break;
+				case "a": this.direction(1, "left");  break;
+				case "s": this.direction(1, "down");  break;
+				case "d": this.direction(1, "right"); break;
+			}
+
+			switch (keyName) {
+				case " ":
+				case "p":
+					game.pause ? game.pause = false : game.pause = true;
+			}
+		}, false);
+
 	}
 
 }
